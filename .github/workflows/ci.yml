@@ -1,17 +1,39 @@
 name: CI
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
 
 jobs:
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Filter paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+            backend:
+              - 'backend/**'
+
   ci-frontend:
     name: Frontend – Lint & Build
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
     runs-on: ubuntu-latest
-    if: >
-      contains(github.event.pull_request.changed_files, 'frontend/') ||
-      github.event_name == 'pull_request'
     defaults:
       run:
         working-directory: frontend
@@ -23,7 +45,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 10.29.3
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -43,6 +65,8 @@ jobs:
 
   ci-backend:
     name: Backend – Lint, Test & Build
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -55,7 +79,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 10.29.3
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

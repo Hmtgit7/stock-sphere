@@ -23,7 +23,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 10.29.3
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -42,7 +42,8 @@ jobs:
         run: pnpm build
 
       - name: Deploy to Railway
-        uses: bervProject/railway-deploy@main
+        uses: bervProject/railway-deploy@4a1cfdb24551aee5c891e0bc716e8de963c4fbe6 # v0.2.0-beta
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         with:
-          railway_token: ${{ secrets.RAILWAY_TOKEN }}
           service: backend
