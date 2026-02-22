@@ -1,0 +1,4 @@
+{
+  "pattern": "^(main|master|develop|dev|staging|production)$|^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|hotfix|release)\\/[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$",
+  "errorMsg": "Branch name must follow the pattern: <type>/<description>\n\nAllowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, hotfix, release\nAllowed base branches: main, master, develop, dev, staging, production\n\nExamples:\n  feat/user-authentication\n  fix/login-bug\n  chore/update-dependencies\n  hotfix/critical-security-patch"
+}

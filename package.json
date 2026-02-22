@@ -1,0 +1,29 @@
+{
+  "name": "stock-sphere",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Stock Sphere monorepo",
+  "packageManager": "pnpm@10.29.3",
+  "scripts": {
+    "prepare": "husky",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,json,md,yml,yaml,html}\" --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,css,json,md,yml,yaml,html}\" --ignore-path .prettierignore",
+    "lint:staged": "lint-staged"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.4.2",
+    "@commitlint/config-conventional": "^20.4.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1",
+    "validate-branch-name": "^1.3.2"
+  },
+  "lint-staged": {
+    "**/*.{js,jsx,ts,tsx}": [
+      "prettier --write"
+    ],
+    "**/*.{css,json,md,yml,yaml,html}": [
+      "prettier --write"
+    ]
+  }
+}

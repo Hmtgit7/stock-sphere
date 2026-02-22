@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+# ─── Commitlint — enforce Conventional Commits ──────────────────────────────
+echo "📝 [commit-msg] Validating commit message..."
+
+npx --no -- commitlint --edit "$1"
+
+echo "✅ [commit-msg] Commit message is valid!"

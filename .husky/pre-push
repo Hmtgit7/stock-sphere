@@ -1,0 +1,45 @@
+#!/usr/bin/env sh
+
+# ─── Branch name validation ──────────────────────────────────────────────────
+echo "🌿 [pre-push] Validating branch name..."
+
+BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD)
+
+# Pattern: <type>/<description> OR protected base branch names
+PATTERN="^(main|master|develop|dev|staging|production)$|^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|hotfix|release)/[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+
+if echo "$BRANCH" | grep -qE "$PATTERN"; then
+  echo "✅ Branch name '$BRANCH' is valid."
+else
+  echo ""
+  echo "❌ Invalid branch name: '$BRANCH'"
+  echo ""
+  echo "   Branch names must follow the pattern: <type>/<short-description>"
+  echo ""
+  echo "   Allowed types:"
+  echo "     feat     — new feature"
+  echo "     fix      — bug fix"
+  echo "     docs     — documentation"
+  echo "     style    — formatting / style"
+  echo "     refactor — code refactoring"
+  echo "     perf     — performance improvement"
+  echo "     test     — adding/updating tests"
+  echo "     build    — build system changes"
+  echo "     ci       — CI/CD changes"
+  echo "     chore    — maintenance tasks"
+  echo "     hotfix   — critical production fix"
+  echo "     release  — release preparation"
+  echo ""
+  echo "   Protected base branches (no prefix needed):"
+  echo "     main, master, develop, dev, staging, production"
+  echo ""
+  echo "   Examples:"
+  echo "     feat/user-authentication"
+  echo "     fix/login-redirect-bug"
+  echo "     chore/update-dependencies"
+  echo "     hotfix/critical-security-patch"
+  echo ""
+  echo "   Rename with: git branch -m <new-name>"
+  echo ""
+  exit 1
+fi
