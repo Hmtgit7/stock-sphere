@@ -6,7 +6,7 @@ import { StatsBar } from './stats-bar';
 import { SectorGroups } from '@/components/portfolio/sector-groups';
 import { ExitedPositions } from '@/components/portfolio/exited-positions';
 import { ErrorBanner } from '@/components/ui/error-banner';
-import { Spinner } from '@/components/ui/spinner';
+import { DashboardSkeleton } from './dashboard-skeleton';
 import { PortfolioBreakdown } from '@/components/charts/portfolio-breakdown';
 import { GainLossBar } from '@/components/charts/gainloss-bar';
 import { Info } from 'lucide-react';
@@ -15,14 +15,7 @@ export function Dashboard() {
   const { data, isLoading, isRefreshing, error, lastUpdated, refresh } = usePortfolio();
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Spinner className="h-8 w-8" />
-          <p className="text-sm text-[var(--text-secondary)]">Loading portfolio data...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
