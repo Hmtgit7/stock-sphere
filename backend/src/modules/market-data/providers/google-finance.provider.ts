@@ -4,6 +4,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { toErrorMessage } from '../../../common/utils/error.util';
 
 export interface FundamentalData {
   peRatio: number | null;
@@ -40,7 +41,7 @@ export class GoogleFinanceProvider {
       let peRatio: number | null = null;
       let latestEarnings: string | null = null;
 
-      // Google Finance key stats — try multiple selectors for resilience
+      // Try multiple selectors — Google Finance layout can vary.
       $('[data-attid]').each((_, el) => {
         const label = $(el).find('.mfs7Fc').text().trim().toLowerCase();
         const value = $(el).find('.P6K39c').text().trim();
@@ -54,7 +55,7 @@ export class GoogleFinanceProvider {
         }
       });
 
-      // Fallback selector — some layouts use different class names
+      // Fallback: some layouts use plainer DOM structure.
       if (peRatio === null) {
         $('div').each((_, el) => {
           const text = $(el).text().trim();
@@ -67,15 +68,15 @@ export class GoogleFinanceProvider {
       }
 
       const result: FundamentalData = { peRatio, latestEarnings };
-      // Cache 5 minutes — fundamentals change slowly
-      await this.cacheManager.set(cacheKey, result, 300_000);
+      await this.cacheManager.set(cacheKey, result, 300_000); // 5 min TTL
       this.logger.log(
         `✅ Fundamentals for ${googleTicker} → P/E: ${peRatio}, EPS: ${latestEarnings}`,
       );
       return result;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.logger.error(`Google Finance error for ${googleTicker}: ${message}`);
+      this.logger.error(
+        `Google Finance error for ${googleTicker}: ${toErrorMessage(err)}`,
+      );
       return { peRatio: null, latestEarnings: null };
     }
   }

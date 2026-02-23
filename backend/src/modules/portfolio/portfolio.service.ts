@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { MarketDataService } from '../market-data/market-data.service';
 import { PORTFOLIO_HOLDINGS, SOLD_HOLDINGS } from './portfolio.data';
 import {
@@ -6,6 +6,38 @@ import {
   Holding,
   SoldHolding,
 } from './entities/holding.entity';
+import { round2 } from '../../common/utils/math.util';
+
+// Simple semaphore — caps concurrent outbound API calls to avoid Yahoo/Google rate-limits.
+class ConcurrencyLimiter {
+  private active = 0;
+  private readonly queue: Array<() => void> = [];
+
+  constructor(private readonly concurrency: number) {}
+
+  async run<T>(task: () => Promise<T>): Promise<T> {
+    await this.acquire();
+    try {
+      return await task();
+    } finally {
+      this.release();
+    }
+  }
+
+  private acquire(): Promise<void> {
+    if (this.active < this.concurrency) {
+      this.active++;
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => this.queue.push(resolve));
+  }
+
+  private release(): void {
+    const next = this.queue.shift();
+    if (next) next();
+    else this.active--;
+  }
+}
 
 export interface SectorSummary {
   sector: string;
@@ -30,10 +62,23 @@ export interface PortfolioResponse {
 }
 
 @Injectable()
-export class PortfolioService {
+export class PortfolioService implements OnApplicationBootstrap {
   private readonly logger = new Logger(PortfolioService.name);
 
+  private readonly limiter = new ConcurrencyLimiter(5);
+
   constructor(private readonly marketDataService: MarketDataService) {}
+
+  // Pre-warm cache on startup so the first request is served instantly.
+  async onApplicationBootstrap(): Promise<void> {
+    this.logger.log('Warming portfolio cache on startup…');
+    try {
+      await this.getEnrichedPortfolio();
+      this.logger.log('Cache warm-up complete.');
+    } catch (err) {
+      this.logger.warn(`Cache warm-up failed: ${String(err)}`);
+    }
+  }
 
   async getEnrichedPortfolio(): Promise<PortfolioResponse> {
     const holdings = PORTFOLIO_HOLDINGS;
@@ -42,9 +87,10 @@ export class PortfolioService {
       0,
     );
 
-    // Enrich all holdings in parallel — allSettled never throws
     const settled = await Promise.allSettled(
-      holdings.map((h) => this.enrichHolding(h, totalInvestment)),
+      holdings.map((h) =>
+        this.limiter.run(() => this.enrichHolding(h, totalInvestment)),
+      ),
     );
 
     const enrichedHoldings: EnrichedHolding[] = settled.map((result, i) => {
@@ -60,7 +106,6 @@ export class PortfolioService {
       0,
     );
     const totalGainLoss = totalPresentValue - totalInvestment;
-    const totalGainLossPct = (totalGainLoss / totalInvestment) * 100;
     const totalRealizedPnL = SOLD_HOLDINGS.reduce(
       (sum, s) => sum + s.realizedPnL,
       0,
@@ -73,9 +118,8 @@ export class PortfolioService {
       totalInvestment,
       totalPresentValue,
       totalGainLoss,
-      totalGainLossPct: Math.round(totalGainLossPct * 100) / 100,
+      totalGainLossPct: round2((totalGainLoss / totalInvestment) * 100),
       totalRealizedPnL,
-      // Assignment requirement: acknowledge unofficial data sources
       dataDisclaimer:
         'Prices sourced from unofficial Yahoo Finance & Google Finance endpoints. Data is indicative only and not financial advice.',
       lastUpdated: new Date().toISOString(),
@@ -87,9 +131,7 @@ export class PortfolioService {
     totalInvestment: number,
   ): Promise<EnrichedHolding> {
     const investment = holding.purchasePrice * holding.quantity;
-    const portfolioPct = (investment / totalInvestment) * 100;
 
-    // Parallel fetch — CMP and fundamentals simultaneously
     const [cmpResult, fundamentalData] = await Promise.allSettled([
       this.marketDataService.getCMP(holding.ticker),
       this.marketDataService.getFundamentals(holding.googleTicker),
@@ -110,14 +152,12 @@ export class PortfolioService {
 
     return {
       ...holding,
-      investment: Math.round(investment * 100) / 100,
-      portfolioPct: Math.round(portfolioPct * 100) / 100,
+      investment: round2(investment),
+      portfolioPct: round2((investment / totalInvestment) * 100),
       cmp,
-      presentValue:
-        presentValue !== null ? Math.round(presentValue * 100) / 100 : null,
-      gainLoss: gainLoss !== null ? Math.round(gainLoss * 100) / 100 : null,
-      gainLossPct:
-        gainLossPct !== null ? Math.round(gainLossPct * 100) / 100 : null,
+      presentValue: presentValue !== null ? round2(presentValue) : null,
+      gainLoss: gainLoss !== null ? round2(gainLoss) : null,
+      gainLossPct: gainLossPct !== null ? round2(gainLossPct) : null,
       peRatio: fundamentals?.peRatio ?? null,
       latestEarnings: fundamentals?.latestEarnings ?? null,
       isFallbackPrice: cmpData.isFallback,
@@ -133,7 +173,7 @@ export class PortfolioService {
     return {
       ...holding,
       investment,
-      portfolioPct: Math.round((investment / totalInvestment) * 10000) / 100,
+      portfolioPct: round2((investment / totalInvestment) * 100),
       cmp: null,
       presentValue: null,
       gainLoss: null,
@@ -160,10 +200,10 @@ export class PortfolioService {
       const gainLoss = totalPresentValue - totalInvestment;
       return {
         sector,
-        totalInvestment: Math.round(totalInvestment * 100) / 100,
-        totalPresentValue: Math.round(totalPresentValue * 100) / 100,
-        gainLoss: Math.round(gainLoss * 100) / 100,
-        gainLossPct: Math.round((gainLoss / totalInvestment) * 10000) / 100,
+        totalInvestment: round2(totalInvestment),
+        totalPresentValue: round2(totalPresentValue),
+        gainLoss: round2(gainLoss),
+        gainLossPct: round2((gainLoss / totalInvestment) * 100),
         holdings: items,
       };
     });

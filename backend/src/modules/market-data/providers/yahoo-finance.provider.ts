@@ -3,6 +3,7 @@ import { Inject } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
 import axios from 'axios';
+import { toHttpStatus } from '../../../common/utils/error.util';
 
 interface YahooChartMeta {
   regularMarketPrice?: number;
@@ -41,6 +42,12 @@ export class YahooFinanceProvider {
     'https://query2.finance.yahoo.com',
   ];
 
+  // In-flight dedup — prevents duplicate external calls for the same ticker.
+  private readonly inFlight = new Map<
+    string,
+    Promise<{ price: number | null; isFallback: boolean }>
+  >();
+
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   async getCMP(
@@ -52,11 +59,27 @@ export class YahooFinanceProvider {
       isFallback: boolean;
     }>(cacheKey);
     if (cached !== undefined && cached !== null) {
-      this.logger.debug(`Cache HIT for ${ticker}`);
+      if (process.env.NODE_ENV !== 'production') {
+        this.logger.debug(`Cache HIT for ${ticker}`);
+      }
       return cached;
     }
 
-    // Try live fetch
+    const existing = this.inFlight.get(ticker);
+    if (existing) return existing;
+
+    const promise = this._fetchAndCache(ticker).finally(() => {
+      this.inFlight.delete(ticker);
+    });
+    this.inFlight.set(ticker, promise);
+    return promise;
+  }
+
+  private async _fetchAndCache(
+    ticker: string,
+  ): Promise<{ price: number | null; isFallback: boolean }> {
+    const cacheKey = `cmp:${ticker}`;
+
     const livePrice = await this.fetchFromYahoo(ticker);
     if (livePrice !== null) {
       const result = { price: livePrice, isFallback: false };
@@ -125,16 +148,7 @@ export class YahooFinanceProvider {
           return price;
         }
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : String(err);
-        const status =
-          typeof err === 'object' &&
-          err !== null &&
-          'response' in err &&
-          typeof (err as { response?: { status?: unknown } }).response
-            ?.status === 'number'
-            ? String((err as { response: { status: number } }).response.status)
-            : message;
-        this.logger.warn(`${host} failed for ${ticker}: ${status}`);
+        this.logger.warn(`${host} failed for ${ticker}: ${toHttpStatus(err)}`);
       }
     }
     return null;
