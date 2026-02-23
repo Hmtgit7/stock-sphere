@@ -18,7 +18,6 @@ import type { EnrichedHolding } from '@/types/portfolio';
 
 const columnHelper = createColumnHelper<EnrichedHolding>();
 
-// Column defs outside component — stable reference, no re-creation on render
 const columns = [
   columnHelper.accessor('particulars', {
     header: 'Stock',
@@ -26,7 +25,6 @@ const columns = [
       <div>
         <p className="font-medium text-[var(--text-primary)]">{info.getValue()}</p>
         <p className="text-xs text-[var(--text-secondary)]">{info.row.original.ticker}</p>
-        {/* Stage-2 analyst signal from Excel */}
         {info.row.original.stage2 && (
           <span className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-[var(--accent-green)]">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent-green)]" />
@@ -75,7 +73,6 @@ const columns = [
           <span className="font-mono text-[var(--text-primary)]">
             {formatCurrency(info.getValue())}
           </span>
-          {/* ~ indicator when static fallback price is used */}
           {isFallback && (
             <span
               title="Static fallback price — live data unavailable"
@@ -100,7 +97,6 @@ const columns = [
     header: 'Gain / Loss',
     cell: (info) => {
       const val = info.getValue();
-      // ← use server-computed gainLossPct — no client-side math
       const pct = info.row.original.gainLossPct;
       return (
         <div className={gainLossClass(val)}>
@@ -141,14 +137,12 @@ export const PortfolioTable = memo(function PortfolioTable({ holdings }: Portfol
 
   return (
     <>
-      {/* ── Mobile: card list (hidden on sm+) — your original layout ── */}
       <div className="flex flex-col gap-2 sm:hidden">
         {holdings.map((h, idx) => (
           <MobileHoldingCard key={h.ticker} holding={h} idx={idx} />
         ))}
       </div>
 
-      {/* ── Desktop: full table (hidden below sm) ── */}
       <div className="hidden overflow-x-auto rounded-xl border border-[var(--border)] sm:block">
         <table className="w-full min-w-[900px] border-collapse text-sm">
           <thead>

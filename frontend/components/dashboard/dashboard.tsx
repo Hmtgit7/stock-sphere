@@ -11,11 +11,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Info } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
-/**
- * Recharts is ~300 KB.  Lazy-loading both chart components reduces the initial
- * JS bundle significantly — they are only downloaded after hydration, while
- * their loading fallback (a shimmer skeleton) keeps the layout shift minimal.
- */
 const PortfolioBreakdown = dynamic(
   () => import('@/components/charts/portfolio-breakdown').then((m) => m.PortfolioBreakdown),
   { loading: () => <Skeleton className="h-[310px] w-full rounded-xl" />, ssr: false }
@@ -27,7 +22,6 @@ const GainLossBar = dynamic(
 );
 
 export function Dashboard() {
-  // Uses the shared PortfolioContext — no duplicate fetch
   const { data, isLoading, isRefreshing, error, lastUpdated, refresh } = usePortfolioContext();
 
   if (isLoading) {
@@ -64,7 +58,6 @@ export function Dashboard() {
                 <SectorGroups sectors={data.sectors} />
               </div>
 
-              {/* Exited positions — only render if we have sold holdings */}
               {data.soldHoldings?.length > 0 && (
                 <div>
                   <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-[var(--text-secondary)]">
@@ -74,7 +67,6 @@ export function Dashboard() {
                 </div>
               )}
 
-              {/* Assignment requirement: disclaimer for unofficial APIs */}
               <div className="flex items-start gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent-amber)]" />
                 <p className="text-xs text-[var(--text-secondary)]">{data.dataDisclaimer}</p>

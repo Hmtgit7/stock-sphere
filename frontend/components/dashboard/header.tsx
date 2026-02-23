@@ -12,11 +12,6 @@ interface HeaderProps {
   onRefresh: () => void;
 }
 
-/**
- * DashboardHeader — sticky page header with live clock and refresh control.
- * Wrapped in React.memo; only re-renders when isRefreshing or lastUpdated
- * actually change, not on every background-poll state update.
- */
 export const DashboardHeader = memo(function DashboardHeader({
   isRefreshing,
   lastUpdated,
@@ -35,7 +30,6 @@ export const DashboardHeader = memo(function DashboardHeader({
         </p>
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
-        {/* Live clock */}
         <div className="text-right">
           <p className="font-mono text-xs text-[var(--text-primary)] sm:text-sm">
             {now.toLocaleTimeString('en-IN', {
@@ -56,7 +50,6 @@ export const DashboardHeader = memo(function DashboardHeader({
           )}
         </div>
 
-        {/* Live indicator dot */}
         <div className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1.5 sm:px-3">
           <span
             className={cn(
@@ -69,7 +62,6 @@ export const DashboardHeader = memo(function DashboardHeader({
           </span>
         </div>
 
-        {/* Manual refresh button */}
         <button
           onClick={onRefresh}
           disabled={isRefreshing}

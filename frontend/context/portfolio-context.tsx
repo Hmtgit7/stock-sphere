@@ -9,7 +9,6 @@ interface PortfolioProviderProps {
   children: ReactNode;
 }
 
-// Single fetch/poll shared across all consumers — no duplicate API calls.
 export function PortfolioProvider({ children }: PortfolioProviderProps) {
   const portfolio = usePortfolio();
   return <PortfolioContext.Provider value={portfolio}>{children}</PortfolioContext.Provider>;

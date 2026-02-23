@@ -43,9 +43,7 @@ export function Navbar() {
 
   return (
     <>
-      {/* Outer wrapper — fixed to top, full width, above all content */}
       <header className="fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-3 sm:px-4">
-        {/* Glass pill */}
         <nav
           className={cn(
             'flex w-full max-w-[1400px] items-center justify-between',
@@ -54,12 +52,10 @@ export function Navbar() {
             'px-3 py-2 shadow-xl shadow-black/30 sm:px-4'
           )}
         >
-          {/* ── Left: Logo ── */}
           <Link href="/" className="select-none shrink-0">
             <Logo size={32} />
           </Link>
 
-          {/* ── Center: Icon Nav Items (hidden on mobile) ── */}
           <ul className="hidden items-center gap-1 sm:flex">
             {NAV_ITEMS.map(({ icon: Icon, label, href }) => {
               const isActive = pathname === href;
@@ -96,9 +92,8 @@ export function Navbar() {
             })}
           </ul>
 
-          {/* ── Right: Alert bell + Avatar + Hamburger ── */}
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Theme toggle — rendered only after hydration to avoid SSR mismatch */}
+            {/* theme toggle - mounted guard prevents SSR mismatch */}
             {mounted && (
               <button
                 title={activeTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -113,7 +108,6 @@ export function Navbar() {
               </button>
             )}
 
-            {/* Alert bell */}
             <button
               title="Alerts"
               className="relative flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] transition-colors hover:bg-[var(--hover-bg)] hover:text-[var(--text-primary)]"
@@ -127,10 +121,8 @@ export function Navbar() {
               )}
             </button>
 
-            {/* Divider (desktop only) */}
             <div className="hidden h-5 w-px bg-[var(--border)] sm:block" />
 
-            {/* User avatar (desktop only) */}
             <button
               title="Profile"
               className="hidden h-8 w-8 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-green)]/40 hover:text-[var(--text-primary)] sm:flex"
@@ -138,7 +130,6 @@ export function Navbar() {
               <User className="h-4 w-4" />
             </button>
 
-            {/* Hamburger (mobile only) */}
             <button
               title="Menu"
               onClick={() => setMobileMenuOpen((v) => !v)}
@@ -150,7 +141,6 @@ export function Navbar() {
         </nav>
       </header>
 
-      {/* ── Mobile Drawer ── */}
       {mobileMenuOpen && (
         <>
           {/* Backdrop */}

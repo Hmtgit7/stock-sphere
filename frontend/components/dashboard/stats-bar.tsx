@@ -4,11 +4,6 @@ import { StatCard } from '@/components/ui/stat-card';
 import { formatCurrency } from '@/lib/utils';
 import type { PortfolioResponse } from '@/types/portfolio';
 
-/**
- * StatsBar — renders the 5 top-level portfolio summary cards.
- * Wrapped in React.memo so it only re-renders when the data reference
- * changes (i.e. after a fresh API response), not on every background poll.
- */
 export const StatsBar = memo(function StatsBar({ data }: { data: PortfolioResponse }) {
   const { totalInvestment, totalPresentValue, totalGainLoss, totalGainLossPct, totalRealizedPnL } =
     data;
@@ -16,7 +11,6 @@ export const StatsBar = memo(function StatsBar({ data }: { data: PortfolioRespon
   const isRealizedPositive = totalRealizedPnL >= 0;
 
   return (
-    // 2 cols mobile → 3 cols md → 5 cols xl
     <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
       <StatCard
         label="Total Invested"
