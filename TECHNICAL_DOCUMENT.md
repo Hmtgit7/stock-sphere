@@ -134,18 +134,62 @@ JSON endpoint       HTML + Cheerio
 
 ## 3. Performance Decisions
 
-| Concern                        | Decision                                                  |
-| ------------------------------ | --------------------------------------------------------- |
-| **Unnecessary renders**        | `React.memo` on table + sector components                 |
-| **Column re-creation**         | Column defs defined at module scope                       |
-| **Data referential stability** | `useMemo(() => holdings, [holdings])`                     |
-| **API over-fetching**          | 30s backend cache, 15s frontend interval                  |
-| **Bundle size**                | Recharts tree-shaken; only used chart components imported |
-| **Server load**                | `ThrottlerGuard` 100 req/60s per IP                       |
+| Concern                        | Decision                                                                                                         |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| **Unnecessary renders**        | `React.memo` on `StatsBar`, `DashboardHeader`                                                                    |
+| **Column re-creation**         | TanStack column defs defined at module scope                                                                     |
+| **Data referential stability** | `useMemo(() => holdings, [holdings])`                                                                            |
+| **Duplicate API calls**        | `PortfolioContext` — single `usePortfolio()` call shared across all pages via context                            |
+| **Yahoo burst rate-limit**     | `ConcurrencyLimiter(5)` — self-contained semaphore caps parallel outbound requests                               |
+| **Concurrent ticker requests** | In-flight dedup `Map<string, Promise>` in `YahooFinanceProvider` — two callers for same ticker share one Promise |
+| **Cold-start latency**         | `OnApplicationBootstrap` pre-warms cache on startup so first user request is a cache hit                         |
+| **API over-fetching**          | 30s backend cache, 15s frontend interval                                                                         |
+| **Bundle size**                | Recharts lazy-loaded via `next/dynamic` with `ssr: false` + `Skeleton` fallback                                  |
+| **Server load**                | `ThrottlerGuard` 100 req/60s per IP                                                                              |
+| **Repeated math**              | `round2(x)` util replaces all `Math.round(x * 100) / 100` calls throughout `PortfolioService`                    |
+| **Error extraction**           | `toErrorMessage(err)` / `toHttpStatus(err)` utils replace repeated inline error-casting patterns                 |
 
 ---
 
-## 4. Security Decisions
+## 4. Folder Structure
+
+```
+stock-sphere/
+├── backend/src/
+│   ├── modules/
+│   │   ├── portfolio/       # PortfolioService (ConcurrencyLimiter, enrichHolding, groupBySector)
+│   │   ├── market-data/     # YahooFinanceProvider, GoogleFinanceProvider
+│   │   └── health/          # Health check endpoint
+│   ├── common/
+│   │   ├── filters/         # HttpExceptionFilter
+│   │   ├── interceptors/    # TransformInterceptor
+│   │   └── utils/           # round2, roundTo, toErrorMessage, toHttpStatus
+│   └── config/              # Env configuration
+└── frontend/
+    ├── app/                 # App Router pages (/, /holdings, /live, /risk, /alerts)
+    ├── components/
+    │   ├── dashboard/       # Dashboard, StatsBar, DashboardHeader
+    │   │   └── hooks/       # useLiveClock (component-scoped)
+    │   ├── portfolio/       # PortfolioTable, SectorGroups, FlatHoldingsTable, MobileHoldingCard
+    │   │   └── hooks/       # useSectorSummary, usePortfolioSummary
+    │   ├── charts/          # GainLossBar, PortfolioBreakdown (lazy-loaded)
+    │   ├── layout/          # Navbar, PageShell, ComingSoonCard
+    │   └── ui/              # Badge, Skeleton, StatCard, Spinner, ErrorBanner, Logo
+    ├── context/             # PortfolioContext — single shared fetch/poll
+    ├── hooks/               # use-portfolio, use-interval, use-fetch, use-debounce
+    ├── lib/
+    │   ├── api.ts           # apiFetch with abort signal + exponential backoff retry
+    │   ├── formatters.ts   # formatCurrency, formatNumber, formatPct
+    │   ├── calculations.ts  # calculateInvestment, calculateGainLoss, calculatePortfolioPct
+    │   ├── helpers.ts       # cn, gainLossClass
+    │   ├── constants.ts     # POLL_INTERVAL_MS, API_MAX_RETRIES, API_BASE_URL
+    │   └── utils.ts         # barrel re-export of all lib modules
+    └── types/               # Shared TypeScript interfaces
+```
+
+---
+
+## 5. Security Decisions
 
 - **API keys** (RAPIDAPI_KEY if used) stored only in Railway environment variables — never in client-side code or `.env.local` committed to git
 - **CORS** locked to `FRONTEND_URL` env variable (Vercel domain only)
@@ -154,7 +198,7 @@ JSON endpoint       HTML + Cheerio
 
 ---
 
-## 5. What I Would Add With More Time
+## 6. What I Would Add With More Time
 
 1. **Redis cache** instead of in-memory — survives Railway restarts and scales horizontally
 
@@ -174,7 +218,7 @@ JSON endpoint       HTML + Cheerio
 
 ---
 
-## 6. Performance Metrics
+## 7. Performance Metrics
 
 | Metric                   | Value                                            |
 | ------------------------ | ------------------------------------------------ |
@@ -186,7 +230,7 @@ JSON endpoint       HTML + Cheerio
 
 ---
 
-## 7. Error Handling Strategy
+## 8. Error Handling Strategy
 
 ### Frontend
 
@@ -203,7 +247,7 @@ JSON endpoint       HTML + Cheerio
 
 ---
 
-## 8. Deployment Configuration
+## 9. Deployment Configuration
 
 ### Vercel (Frontend)
 
@@ -234,7 +278,7 @@ NODE_ENV=production
 
 ---
 
-## 9. Git Workflow
+## 10. Git Workflow
 
 ### Branch Naming
 
@@ -264,7 +308,7 @@ Husky hooks validate:
 
 ---
 
-## 10. Technology Justifications
+## 11. Technology Justifications
 
 **Why Next.js 16?**
 

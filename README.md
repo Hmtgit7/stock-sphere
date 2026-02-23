@@ -141,20 +141,31 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ```
 stock-sphere/
-├── backend/                 # NestJS — Railway
+├── backend/                        # NestJS — Railway
 │   └── src/
 │       ├── modules/
-│       │   ├── portfolio/   # Holdings logic + sector grouping
-│       │   ├── market-data/ # Yahoo + Google Finance providers
-│       │   └── health/      # Railway health probe
-│       ├── common/          # Interceptors, filters, pipes
-│       └── config/          # Zod-validated env
-└── frontend/                # Next.js — Vercel
-    ├── app/                 # App Router pages
-    ├── components/          # Dashboard, Portfolio, UI atoms
-    ├── hooks/               # usePortfolio, useLiveClock
-    ├── lib/                 # API client, utils
-    └── types/               # Shared TypeScript interfaces
+│       │   ├── portfolio/          # Holdings logic, sector grouping, ConcurrencyLimiter
+│       │   ├── market-data/        # Yahoo + Google Finance providers
+│       │   └── health/             # Railway health probe
+│       ├── common/
+│       │   ├── filters/            # HttpExceptionFilter
+│       │   ├── interceptors/       # TransformInterceptor
+│       │   └── utils/              # round2, toErrorMessage, toHttpStatus
+│       └── config/                 # Env configuration
+└── frontend/                       # Next.js — Vercel
+    ├── app/                        # App Router pages
+    ├── components/
+    │   ├── dashboard/              # Dashboard, StatsBar, DashboardHeader
+    │   │   └── hooks/              # useLiveClock (component-scoped)
+    │   ├── portfolio/              # PortfolioTable, SectorGroups, FlatHoldingsTable
+    │   │   └── hooks/              # useSectorSummary, usePortfolioSummary
+    │   ├── charts/                 # GainLossBar, PortfolioBreakdown (lazy-loaded)
+    │   ├── layout/                 # Navbar, PageShell, ComingSoonCard
+    │   └── ui/                     # Badge, Skeleton, StatCard, Spinner, ErrorBanner
+    ├── context/                    # PortfolioContext — single shared fetch/poll
+    ├── hooks/                      # use-portfolio, use-interval, use-fetch, use-debounce
+    ├── lib/                        # api, formatters, calculations, helpers, constants
+    └── types/                      # Shared TypeScript interfaces
 ```
 
 ---
@@ -169,10 +180,21 @@ Yahoo Finance has no official public API. This project uses the reverse-engineer
 
 - **CMP data:** 30s TTL (matches 15s frontend poll + buffer)
 - **Fundamentals:** 5-minute TTL (P/E ratios rarely change intraday)
+- **Startup warm-up:** `OnApplicationBootstrap` pre-fills the cache so the first user request always gets a cache hit
+
+### Context-Based State
+
+`PortfolioProvider` wraps the app layout so `usePortfolio()` is called exactly once regardless of how many pages/components consume the data. All consumers call `usePortfolioContext()` and share the same 15-second polling cycle — no duplicate API calls.
 
 ### Error Resilience
 
 `Promise.allSettled` is used at both the per-stock and per-field level, ensuring a single failed API call never crashes the entire portfolio response. Failed values render as `—` in the UI.
+
+### Shared Backend Utilities
+
+- `round2(x)` — replaces all `Math.round(x * 100) / 100` calls throughout `PortfolioService`
+- `toErrorMessage(err)` — safely extracts a string from any thrown value
+- `toHttpStatus(err)` — extracts HTTP status from Axios errors; used in `YahooFinanceProvider`
 
 ### Git Workflow
 
