@@ -42,8 +42,6 @@ jobs:
         run: pnpm build
 
       - name: Deploy to Railway
-        uses: bervProject/railway-deploy@4a1cfdb24551aee5c891e0bc716e8de963c4fbe6 # v0.2.0-beta
+        run: npx --yes @railway/cli@latest up --service backend --detach
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        with:
-          service: backend
