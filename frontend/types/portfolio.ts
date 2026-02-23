@@ -24,10 +24,10 @@ export interface EnrichedHolding extends Holding {
   cmp: number | null;
   presentValue: number | null;
   gainLoss: number | null;
-  gainLossPct: number | null; // ← new: server-computed %
+  gainLossPct: number | null;
   peRatio: number | null;
   latestEarnings: string | null;
-  isFallbackPrice: boolean; // ← new: shows ~ on CMP
+  isFallbackPrice: boolean;
   lastUpdated: string;
 }
 
@@ -50,19 +50,19 @@ export interface SectorSummary {
   totalInvestment: number;
   totalPresentValue: number;
   gainLoss: number;
-  gainLossPct: number; // ← new: server-computed %
+  gainLossPct: number;
   holdings: EnrichedHolding[];
 }
 
 export interface PortfolioResponse {
   holdings: EnrichedHolding[];
   sectors: SectorSummary[];
-  soldHoldings: SoldHolding[]; // ← new: exited positions
+  soldHoldings: SoldHolding[];
   totalInvestment: number;
   totalPresentValue: number;
   totalGainLoss: number;
-  totalGainLossPct: number; // ← new
-  totalRealizedPnL: number; // ← new: sum of sold P&L
-  dataDisclaimer: string; // ← new: assignment requirement
+  totalGainLossPct: number;
+  totalRealizedPnL: number;
+  dataDisclaimer: string;
   lastUpdated: string;
 }
