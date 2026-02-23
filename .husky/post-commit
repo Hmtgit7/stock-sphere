@@ -1,0 +1,36 @@
+#!/usr/bin/env sh
+
+# Skip if this commit was already an autopretify commit (avoid infinite loop)
+LAST_MSG=$(git log -1 --pretty=%s)
+case "$LAST_MSG" in
+  style\(autopretify\)*)
+    exit 0
+    ;;
+esac
+
+# ─── Get files touched in the last commit ────────────────────────────────────
+COMMITTED_FILES=$(git diff-tree --no-commit-id -r --name-only HEAD | grep -E '\.(js|jsx|ts|tsx|css|json|md|yml|yaml|html)$' || true)
+
+if [ -z "$COMMITTED_FILES" ]; then
+  exit 0
+fi
+
+# ─── Run Prettier on those files ─────────────────────────────────────────────
+echo "$COMMITTED_FILES" | tr '\n' '\0' | xargs -0 npx prettier --write --ignore-unknown 2>/dev/null
+
+# ─── Check if Prettier changed anything ──────────────────────────────────────
+PRETTIER_CHANGED=$(git diff --name-only || true)
+
+if [ -n "$PRETTIER_CHANGED" ]; then
+  echo ""
+  echo "🎨 Prettier reformatted the following files:"
+  echo "$PRETTIER_CHANGED" | sed 's/^/   → /'
+  echo ""
+
+  echo "$PRETTIER_CHANGED" | tr '\n' '\0' | xargs -0 git add
+  git commit -m "style(autopretify): auto-formatted code [skip ci]" --no-verify
+
+  echo "✅ autopretify commit created."
+else
+  echo "✅ Everything is already pretty — no autopretify commit needed."
+fi
