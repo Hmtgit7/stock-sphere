@@ -26,8 +26,10 @@ jobs:
           filters: |
             frontend:
               - 'frontend/**'
+              - '.github/workflows/ci.yml'
             backend:
               - 'backend/**'
+              - '.github/workflows/ci.yml'
 
   ci-frontend:
     name: Frontend – Lint & Build
