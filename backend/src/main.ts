@@ -10,39 +10,16 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log'],
   });
 
-  // CORS before helmet, otherwise helmet overrides the headers
-  const allowedOrigins = (process.env.FRONTEND_URL ?? '')
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
+  // Security
+  app.use(helmet());
+  app.use(compression());
 
-  const isDev = process.env.NODE_ENV !== 'production';
-  if (isDev) {
-    allowedOrigins.push('http://localhost:3000');
-  }
-
+  // CORS — allow only your Vercel frontend
   app.enableCors({
-    origin: (
-      origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void,
-    ) => {
-      // allow requests with no origin (curl, Postman, etc.)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      callback(new Error(`CORS: origin '${origin}' not allowed`));
-    },
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    origin: process.env.FRONTEND_URL ?? '*',
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
     credentials: true,
   });
-
-  // cross-origin so the frontend on a different domain can read responses
-  app.use(
-    helmet({
-      crossOriginResourcePolicy: { policy: 'cross-origin' },
-    }),
-  );
-  app.use(compression());
 
   // Global prefix
   app.setGlobalPrefix('api/v1');
@@ -56,4 +33,4 @@ async function bootstrap() {
   console.log(`Backend running on port ${port}`);
 }
 
-void bootstrap();
+bootstrap();
