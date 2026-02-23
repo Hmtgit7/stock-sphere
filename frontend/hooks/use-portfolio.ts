@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { portfolioApi } from '@/lib/api';
+import { useInterval } from '@/hooks/use-interval';
+import { POLL_INTERVAL_MS } from '@/lib/constants';
 import type { PortfolioResponse } from '@/types/portfolio';
 
-interface UsePortfolioReturn {
+export interface UsePortfolioReturn {
   data: PortfolioResponse | null;
   isLoading: boolean;
   isRefreshing: boolean;
@@ -13,15 +15,13 @@ interface UsePortfolioReturn {
   refresh: () => void;
 }
 
-const POLL_INTERVAL_MS = 15_000;
-
 export function usePortfolio(): UsePortfolioReturn {
   const [data, setData] = useState<PortfolioResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // initial full load
-  const [isRefreshing, setIsRefreshing] = useState(false); // background refresh
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  // useRef so interval callback always has latest state without re-registering
+
   const isMountedRef = useRef(true);
 
   const fetchData = useCallback(async (isBackground = false) => {
@@ -44,7 +44,6 @@ export function usePortfolio(): UsePortfolioReturn {
     }
   }, []);
 
-  // Initial fetch
   useEffect(() => {
     isMountedRef.current = true;
     fetchData(false);
@@ -53,11 +52,7 @@ export function usePortfolio(): UsePortfolioReturn {
     };
   }, [fetchData]);
 
-  // Polling — background refresh every 15s
-  useEffect(() => {
-    const interval = setInterval(() => fetchData(true), POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [fetchData]);
+  useInterval(() => fetchData(true), POLL_INTERVAL_MS);
 
   return {
     data,

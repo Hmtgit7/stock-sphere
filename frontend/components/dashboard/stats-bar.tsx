@@ -1,9 +1,15 @@
+import { memo } from 'react';
 import { TrendingUp, TrendingDown, Wallet, BarChart3, History } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
 import { formatCurrency } from '@/lib/utils';
 import type { PortfolioResponse } from '@/types/portfolio';
 
-export function StatsBar({ data }: { data: PortfolioResponse }) {
+/**
+ * StatsBar — renders the 5 top-level portfolio summary cards.
+ * Wrapped in React.memo so it only re-renders when the data reference
+ * changes (i.e. after a fresh API response), not on every background poll.
+ */
+export const StatsBar = memo(function StatsBar({ data }: { data: PortfolioResponse }) {
   const { totalInvestment, totalPresentValue, totalGainLoss, totalGainLossPct, totalRealizedPnL } =
     data;
   const isPositive = totalGainLoss >= 0;
@@ -48,4 +54,4 @@ export function StatsBar({ data }: { data: PortfolioResponse }) {
       />
     </div>
   );
-}
+});

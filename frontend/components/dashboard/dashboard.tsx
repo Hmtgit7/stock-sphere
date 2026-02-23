@@ -1,18 +1,34 @@
 'use client';
 
-import { usePortfolio } from '@/hooks/use-portfolio';
+import { usePortfolioContext } from '@/context/portfolio-context';
 import { DashboardHeader } from './header';
 import { StatsBar } from './stats-bar';
 import { SectorGroups } from '@/components/portfolio/sector-groups';
 import { ExitedPositions } from '@/components/portfolio/exited-positions';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { DashboardSkeleton } from './dashboard-skeleton';
-import { PortfolioBreakdown } from '@/components/charts/portfolio-breakdown';
-import { GainLossBar } from '@/components/charts/gainloss-bar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Info } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+/**
+ * Recharts is ~300 KB.  Lazy-loading both chart components reduces the initial
+ * JS bundle significantly — they are only downloaded after hydration, while
+ * their loading fallback (a shimmer skeleton) keeps the layout shift minimal.
+ */
+const PortfolioBreakdown = dynamic(
+  () => import('@/components/charts/portfolio-breakdown').then((m) => m.PortfolioBreakdown),
+  { loading: () => <Skeleton className="h-[310px] w-full rounded-xl" />, ssr: false }
+);
+
+const GainLossBar = dynamic(
+  () => import('@/components/charts/gainloss-bar').then((m) => m.GainLossBar),
+  { loading: () => <Skeleton className="h-[310px] w-full rounded-xl" />, ssr: false }
+);
 
 export function Dashboard() {
-  const { data, isLoading, isRefreshing, error, lastUpdated, refresh } = usePortfolio();
+  // Uses the shared PortfolioContext — no duplicate fetch
+  const { data, isLoading, isRefreshing, error, lastUpdated, refresh } = usePortfolioContext();
 
   if (isLoading) {
     return <DashboardSkeleton />;

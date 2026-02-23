@@ -1,12 +1,13 @@
 'use client';
 
-import { usePortfolio } from '@/hooks/use-portfolio';
+import { usePortfolioContext } from '@/context/portfolio-context';
 import { PortfolioTable } from './portfolio-table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBanner } from '@/components/ui/error-banner';
 
 export function FlatHoldingsTable() {
-  const { data, isLoading, error } = usePortfolio();
+  // Consumes the shared PortfolioContext — no duplicate API call
+  const { data, isLoading, error } = usePortfolioContext();
 
   if (isLoading)
     return (

@@ -39,6 +39,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { Navbar } from '@/components/layout/navbar';
 import { ThemeProvider } from '@/components/layout/theme-provider';
+import { PortfolioProvider } from '@/context/portfolio-context';
 import './globals.css';
 
 const geistSans = Geist({
@@ -77,12 +78,20 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange={false}
         >
-          <Navbar />
           {/*
-            pt-[72px] clears the fixed navbar height on mobile
-            sm:pt-20 for larger screens
+            PortfolioProvider mounts a SINGLE usePortfolio() instance here.
+            Dashboard, Holdings, and any other page that needs portfolio data
+            call usePortfolioContext() — they all share the same fetch/poll
+            cycle without triggering duplicate API calls.
           */}
-          <main className="pt-[72px] sm:pt-20">{children}</main>
+          <PortfolioProvider>
+            <Navbar />
+            {/*
+              pt-[72px] clears the fixed navbar height on mobile
+              sm:pt-20 for larger screens
+            */}
+            <main className="pt-[72px] sm:pt-20">{children}</main>
+          </PortfolioProvider>
         </ThemeProvider>
       </body>
     </html>

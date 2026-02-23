@@ -1,6 +1,7 @@
 'use client';
 
-import { useLiveClock } from '@/hooks/use-live-clock';
+import { memo } from 'react';
+import { useLiveClock } from './hooks/use-live-clock';
 import { RefreshCw } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
@@ -11,7 +12,16 @@ interface HeaderProps {
   onRefresh: () => void;
 }
 
-export function DashboardHeader({ isRefreshing, lastUpdated, onRefresh }: HeaderProps) {
+/**
+ * DashboardHeader — sticky page header with live clock and refresh control.
+ * Wrapped in React.memo; only re-renders when isRefreshing or lastUpdated
+ * actually change, not on every background-poll state update.
+ */
+export const DashboardHeader = memo(function DashboardHeader({
+  isRefreshing,
+  lastUpdated,
+  onRefresh,
+}: HeaderProps) {
   const now = useLiveClock();
 
   return (
@@ -71,4 +81,4 @@ export function DashboardHeader({ isRefreshing, lastUpdated, onRefresh }: Header
       </div>
     </header>
   );
-}
+});
