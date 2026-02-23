@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, startTransition } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -35,6 +35,10 @@ export function Navbar() {
   const [alertCount] = useState(1);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    startTransition(() => setMounted(true));
+  }, []);
   const activeTheme = resolvedTheme ?? theme;
 
   return (
@@ -94,14 +98,20 @@ export function Navbar() {
 
           {/* ── Right: Alert bell + Avatar + Hamburger ── */}
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {/* Theme toggle */}
-            <button
-              title={activeTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              onClick={() => setTheme(activeTheme === 'dark' ? 'light' : 'dark')}
-              className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] transition-colors hover:bg-[var(--hover-bg)] hover:text-[var(--text-primary)]"
-            >
-              {activeTheme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
+            {/* Theme toggle — rendered only after hydration to avoid SSR mismatch */}
+            {mounted && (
+              <button
+                title={activeTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                onClick={() => setTheme(activeTheme === 'dark' ? 'light' : 'dark')}
+                className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] transition-colors hover:bg-[var(--hover-bg)] hover:text-[var(--text-primary)]"
+              >
+                {activeTheme === 'dark' ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
+              </button>
+            )}
 
             {/* Alert bell */}
             <button
