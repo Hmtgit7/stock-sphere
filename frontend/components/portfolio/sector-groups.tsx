@@ -16,7 +16,11 @@ export const SectorGroups = memo(function SectorGroups({ sectors }: SectorGroups
   const toggle = (sector: string) =>
     setExpanded((prev) => {
       const next = new Set(prev);
-      next.has(sector) ? next.delete(sector) : next.add(sector);
+      if (next.has(sector)) {
+        next.delete(sector);
+      } else {
+        next.add(sector);
+      }
       return next;
     });
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -34,10 +34,8 @@ export function Navbar() {
   const pathname = usePathname();
   const [alertCount] = useState(1);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const { theme, resolvedTheme, setTheme } = useTheme();
+  const activeTheme = resolvedTheme ?? theme;
 
   return (
     <>
@@ -97,15 +95,13 @@ export function Navbar() {
           {/* ── Right: Alert bell + Avatar + Hamburger ── */}
           <div className="flex items-center gap-1.5 sm:gap-2">
             {/* Theme toggle */}
-            {mounted && (
-              <button
-                title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] transition-colors hover:bg-[var(--hover-bg)] hover:text-[var(--text-primary)]"
-              >
-                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </button>
-            )}
+            <button
+              title={activeTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              onClick={() => setTheme(activeTheme === 'dark' ? 'light' : 'dark')}
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-secondary)] transition-colors hover:bg-[var(--hover-bg)] hover:text-[var(--text-primary)]"
+            >
+              {activeTheme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
 
             {/* Alert bell */}
             <button
@@ -185,19 +181,17 @@ export function Navbar() {
                   <User className="h-4 w-4 shrink-0" />
                   Profile
                 </button>
-                {mounted && (
-                  <button
-                    onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                    className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-primary)]"
-                  >
-                    {theme === 'dark' ? (
-                      <Sun className="h-4 w-4 shrink-0" />
-                    ) : (
-                      <Moon className="h-4 w-4 shrink-0" />
-                    )}
-                    {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-                  </button>
-                )}
+                <button
+                  onClick={() => setTheme(activeTheme === 'dark' ? 'light' : 'dark')}
+                  className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm text-[var(--text-secondary)] hover:bg-[var(--hover-bg)] hover:text-[var(--text-primary)]"
+                >
+                  {activeTheme === 'dark' ? (
+                    <Sun className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <Moon className="h-4 w-4 shrink-0" />
+                  )}
+                  {activeTheme === 'dark' ? 'Light mode' : 'Dark mode'}
+                </button>
               </div>
             </nav>
           </div>
