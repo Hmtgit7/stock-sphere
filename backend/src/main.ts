@@ -10,52 +10,27 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log'],
   });
 
+  // Security
   app.use(helmet());
   app.use(compression());
 
-  // ALLOWED_ORIGINS is a comma-separated list set in Railway env vars.
-  // Falls back to FRONTEND_URL for backwards compat.
-  // e.g. https://stock-sphere-frontend-lyart.vercel.app,http://localhost:3000
-  const rawOrigins =
-    process.env.ALLOWED_ORIGINS ?? process.env.FRONTEND_URL ?? '';
-  const allowedOrigins: string[] = rawOrigins
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
-
-  // Using origin as a function so we can validate against the allowlist.
-  // Passing '*' with credentials:true doesn't work — browsers block it.
+  // CORS — allow only your Vercel frontend
   app.enableCors({
-    origin: (
-      requestOrigin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void,
-    ) => {
-      // no Origin header means it's a direct server call, let it through
-      if (!requestOrigin || allowedOrigins.includes(requestOrigin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS blocked: ${requestOrigin}`), false);
-      }
-    },
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-    exposedHeaders: ['Content-Range', 'X-Total-Count'],
+    origin: process.env.FRONTEND_URL ?? '*',
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
     credentials: true,
-    optionsSuccessStatus: 204,
-    preflightContinue: false,
   });
 
+  // Global prefix
   app.setGlobalPrefix('api/v1');
 
+  // Global transform + error handling
   app.useGlobalInterceptors(new TransformInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
   console.log(`Backend running on port ${port}`);
-  console.log(
-    `Allowed CORS origins: ${allowedOrigins.length ? allowedOrigins.join(', ') : '(none — set ALLOWED_ORIGINS)'}`,
-  );
 }
 
 bootstrap();
