@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, gainLossClass, cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/formatters';
+import { cn, gainLossClass } from '@/lib/helpers';
 import type { EnrichedHolding } from '@/types/portfolio';
 
 interface MobileHoldingCardProps {

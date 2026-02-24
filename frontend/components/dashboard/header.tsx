@@ -4,7 +4,7 @@ import { memo } from 'react';
 import { useLiveClock } from './hooks/use-live-clock';
 import { RefreshCw } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/helpers';
 
 interface HeaderProps {
   isRefreshing: boolean;

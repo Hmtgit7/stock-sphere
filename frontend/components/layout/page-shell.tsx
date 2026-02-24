@@ -1,6 +1,6 @@
 import { LucideIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { ComingSoonCard } from './coming-soon-card';
+import { cn } from '@/lib/helpers';
 
 interface PageShellProps {
   icon: LucideIcon;

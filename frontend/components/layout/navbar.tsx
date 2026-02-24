@@ -18,8 +18,8 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { Logo } from '@/components/ui/logo';
+import { cn } from '@/lib/helpers';
 
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/' },

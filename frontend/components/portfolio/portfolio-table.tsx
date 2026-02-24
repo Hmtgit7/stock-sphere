@@ -12,9 +12,10 @@ import {
 import { useState, useMemo, memo } from 'react';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatNumber, formatPct, gainLossClass, cn } from '@/lib/utils';
 import { MobileHoldingCard } from './mobile-holding-card';
 import type { EnrichedHolding } from '@/types/portfolio';
+import { formatCurrency, formatNumber, formatPct } from '@/lib/formatters';
+import { cn, gainLossClass } from '@/lib/helpers';
 
 const columnHelper = createColumnHelper<EnrichedHolding>();
 
