@@ -3,7 +3,7 @@
 import { useMemo, memo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { SectorSummary } from '@/types/portfolio';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/lib/formatters';
 
 // Palette — matches the dark green theme
 const SECTOR_COLORS = [

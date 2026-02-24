@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/helpers';
 
 interface BadgeProps {
   label: string;

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { cn } from '@/lib/utils';
 import { ArrowRight } from 'lucide-react';
+import { cn } from '@/lib/helpers';
 
 // Simulated live feed items — replace with real WebSocket data later
 const MOCK_FEED = [

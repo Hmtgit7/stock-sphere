@@ -12,7 +12,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import type { SectorSummary } from '@/types/portfolio';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/lib/formatters';
 
 interface GainLossBarProps {
   sectors: SectorSummary[];

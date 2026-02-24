@@ -2,8 +2,9 @@
 
 import { useState, memo } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { formatCurrency, gainLossClass, cn } from '@/lib/utils';
 import type { SoldHolding } from '@/types/portfolio';
+import { cn, gainLossClass } from '@/lib/helpers';
+import { formatCurrency } from '@/lib/formatters';
 
 interface ExitedPositionsProps {
   soldHoldings: SoldHolding[];

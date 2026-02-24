@@ -1,8 +1,8 @@
 import { memo } from 'react';
 import { TrendingUp, TrendingDown, Wallet, BarChart3, History } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
-import { formatCurrency } from '@/lib/utils';
 import type { PortfolioResponse } from '@/types/portfolio';
+import { formatCurrency } from '@/lib/formatters';
 
 export const StatsBar = memo(function StatsBar({ data }: { data: PortfolioResponse }) {
   const { totalInvestment, totalPresentValue, totalGainLoss, totalGainLossPct, totalRealizedPnL } =

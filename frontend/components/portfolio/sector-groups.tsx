@@ -3,8 +3,9 @@
 import { useState, memo } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { PortfolioTable } from './portfolio-table';
-import { formatCurrency, gainLossClass, cn } from '@/lib/utils';
 import type { SectorSummary } from '@/types/portfolio';
+import { formatCurrency } from '@/lib/formatters';
+import { cn, gainLossClass } from '@/lib/helpers';
 
 interface SectorGroupsProps {
   sectors: SectorSummary[];
