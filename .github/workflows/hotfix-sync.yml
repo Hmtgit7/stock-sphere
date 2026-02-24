@@ -1,0 +1,109 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Hotfix Sync – Back-merge main → staging and main → develop
+#
+# Triggers when a PR from a `hotfix/*` branch is merged into `main`.
+#
+# After production is patched via a hotfix:
+#   1. Merge main → staging  (so staging has the fix)
+#   2. Merge main → develop  (so develop has the fix)
+#
+# Conflict handling:
+#   If a merge fails (e.g. conflicting changes), the job fails with a
+#   clear error.  A developer must resolve the conflict manually by:
+#     a) Creating a fix-merge branch from the target branch
+#     b) Merging main into it and resolving conflicts
+#     c) Opening a PR back to staging or develop
+#
+# Required repository secret:
+#   SYNC_PAT  – Personal Access Token with repo:write scope.
+#               Using a PAT (not GITHUB_TOKEN) ensures pushes can
+#               trigger downstream branch-protection checks if needed.
+# ─────────────────────────────────────────────────────────────────────────────
+name: Hotfix – Sync main → staging → develop
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
+
+concurrency:
+  group: hotfix-sync-${{ github.event.pull_request.merge_commit_sha }}
+  cancel-in-progress: false
+
+jobs:
+  sync-branches:
+    name: 🔁 Back-merge main into staging and develop
+    # Only run when a hotfix/* PR is actually merged (not just closed)
+    if: |
+      github.event.pull_request.merged == true &&
+      startsWith(github.event.pull_request.head.ref, 'hotfix/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          # Use a PAT so pushes can trigger other workflows / respect
+          # branch protection without blocking on GITHUB_TOKEN restrictions
+          token: ${{ secrets.SYNC_PAT }}
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # ── Merge main → staging ──────────────────────────────────────────────
+      - name: Sync main → staging
+        id: sync-staging
+        shell: bash
+        run: |
+          echo "::group::Syncing main → staging"
+          git fetch origin staging
+          git checkout staging
+          git merge --no-ff origin/main \
+            -m "chore(hotfix-sync): merge main into staging after ${{ github.event.pull_request.head.ref }}"
+
+          if ! git push origin staging; then
+            echo "::error::Failed to push main → staging. Resolve conflicts manually."
+            exit 1
+          fi
+          echo "::endgroup::"
+          echo "result=success" >> "$GITHUB_OUTPUT"
+
+      # ── Merge main → develop ──────────────────────────────────────────────
+      - name: Sync main → develop
+        id: sync-develop
+        shell: bash
+        run: |
+          echo "::group::Syncing main → develop"
+          git fetch origin develop
+          git checkout develop
+          git merge --no-ff origin/main \
+            -m "chore(hotfix-sync): merge main into develop after ${{ github.event.pull_request.head.ref }}"
+
+          if ! git push origin develop; then
+            echo "::error::Failed to push main → develop. Resolve conflicts manually."
+            exit 1
+          fi
+          echo "::endgroup::"
+          echo "result=success" >> "$GITHUB_OUTPUT"
+
+      # ── Summary ──────────────────────────────────────────────────────────
+      - name: Write job summary
+        if: always()
+        run: |
+          echo "## Hotfix Sync Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Branch | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| staging  | ${{ steps.sync-staging.outputs.result == 'success' && '✅ synced' || '❌ failed' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| develop  | ${{ steps.sync-develop.outputs.result == 'success' && '✅ synced' || '❌ failed' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Hotfix branch:** \`${{ github.event.pull_request.head.ref }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Merge commit:** \`${{ github.event.pull_request.merge_commit_sha }}\`" >> "$GITHUB_STEP_SUMMARY"

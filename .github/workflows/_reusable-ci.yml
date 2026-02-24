@@ -1,0 +1,151 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Reusable CI workflow
+# Called by:  ci.yml (PR checks)  |  deploy-*.yml (pre-deploy gate)
+#
+# Inputs
+#   node-version  – Node.js version (default: '20')
+#   run-all       – When true, skip path filtering and always run every package
+# ─────────────────────────────────────────────────────────────────────────────
+name: ♻️ Reusable – CI
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: 'Node.js version to use'
+        type: string
+        default: '20'
+      run-all:
+        description: 'Skip path filtering and run CI for every package'
+        type: boolean
+        default: false
+
+jobs:
+  # ───────────────────────────────────────────────────────────────────────────
+  # Detect which packages changed (skipped when run-all is true)
+  # ───────────────────────────────────────────────────────────────────────────
+  changes:
+    name: 🔍 Detect changed packages
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.result.outputs.frontend }}
+      backend: ${{ steps.result.outputs.backend }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Filter changed paths
+        if: ${{ !inputs.run-all }}
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/**'
+            backend:
+              - 'backend/**'
+              - '.github/workflows/**'
+
+      - name: Resolve outputs
+        id: result
+        shell: bash
+        run: |
+          if [ "${{ inputs.run-all }}" == "true" ]; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "backend=true"  >> "$GITHUB_OUTPUT"
+          else
+            FE="${{ steps.filter.outputs.frontend }}"
+            BE="${{ steps.filter.outputs.backend }}"
+            echo "frontend=${FE:-false}" >> "$GITHUB_OUTPUT"
+            echo "backend=${BE:-false}"  >> "$GITHUB_OUTPUT"
+          fi
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Frontend – lint → type-check → build
+  # ───────────────────────────────────────────────────────────────────────────
+  ci-frontend:
+    name: 🖥  Frontend – Lint / Type-check / Build
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' }}
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.29.3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type-check
+        run: pnpm exec tsc --noEmit
+
+      - name: Build
+        run: pnpm build
+        env:
+          # Use placeholder URL during CI build; real URL injected at deploy time
+          NEXT_PUBLIC_API_URL: http://localhost:3001
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Backend – lint → type-check → unit tests → build
+  # ───────────────────────────────────────────────────────────────────────────
+  ci-backend:
+    name: ⚙️  Backend – Lint / Type-check / Test / Build
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.29.3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type-check
+        run: pnpm exec tsc --noEmit
+
+      - name: Unit tests
+        run: pnpm test -- --ci --passWithNoTests
+
+      - name: Build
+        run: pnpm build

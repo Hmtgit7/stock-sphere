@@ -1,0 +1,55 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CD – Deploy to Staging
+#
+# Triggers on every push to the `staging` branch (i.e. after develop is
+# merged into staging as a release candidate).
+# Runs full CI, then deploys both services to the staging environment.
+#
+# GitHub Environment: staging
+#   • Optional: require 1 reviewer before deployment
+#   • Store staging-tier secrets here
+# ─────────────────────────────────────────────────────────────────────────────
+name: CD – Deploy to Staging
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - '.github/workflows/deploy-staging.yml'
+      - '.github/workflows/_reusable-ci.yml'
+
+# Queue; never cancel an in-flight staging deployment
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  # ── Gate: full CI must pass before anything is deployed ──────────────────
+  ci:
+    name: CI Gate
+    uses: ./.github/workflows/_reusable-ci.yml
+    with:
+      node-version: '20'
+      run-all: true
+
+  # ── Deploy frontend to Vercel (staging preview) ───────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend → staging
+    needs: ci
+    uses: ./.github/workflows/deploy-frontend.yml
+    with:
+      environment: staging
+      production-deploy: false
+    secrets: inherit
+
+  # ── Deploy backend to AWS ECS (staging cluster) ───────────────────────────
+  deploy-backend:
+    name: Deploy Backend → staging
+    needs: ci
+    uses: ./.github/workflows/deploy-backend.yml
+    with:
+      environment: staging
+    secrets: inherit
