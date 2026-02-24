@@ -74,7 +74,7 @@ export function MobileHoldingCard({ holding, idx }: MobileHoldingCardProps) {
                 'h-full rounded-full',
                 isPos ? 'bg-[var(--accent-green)]' : 'bg-[var(--accent-red)]'
               )}
-              style={{ width: `${Math.min(Math.abs(holding.gainLossPct ?? 0), 100)}%` }}
+              style={{ width: `${Math.min(Math.abs(holding.portfolioPct ?? 0), 100)}%` }}
             />
           </div>
         </div>
