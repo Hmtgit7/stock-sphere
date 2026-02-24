@@ -4,17 +4,8 @@ import type { EnrichedHolding } from '@/types/portfolio';
 
 interface MobileHoldingCardProps {
   holding: EnrichedHolding;
-  /** Index in the list — used for alternating row background colours. */
   idx: number;
 }
-
-/**
- * MobileHoldingCard — single-holding summary rendered as a card on small
- * screens (hidden on sm and above in favour of the full sortable table).
- *
- * Extracted into its own file so portfolio-table.tsx stays focused on the
- * table logic and this component can be reused elsewhere independently.
- */
 export function MobileHoldingCard({ holding, idx }: MobileHoldingCardProps) {
   const isPos = (holding.gainLoss ?? 0) >= 0;
 
@@ -25,7 +16,6 @@ export function MobileHoldingCard({ holding, idx }: MobileHoldingCardProps) {
         idx % 2 === 0 ? 'bg-[var(--surface)]' : 'bg-[var(--surface-elevated)]'
       )}
     >
-      {/* Row 1 — name + exchange badge + portfolio weight */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate font-semibold text-[var(--text-primary)]">{holding.particulars}</p>
@@ -45,7 +35,6 @@ export function MobileHoldingCard({ holding, idx }: MobileHoldingCardProps) {
         </div>
       </div>
 
-      {/* Row 2 — key numbers */}
       <div className="mt-2.5 grid grid-cols-3 gap-2 text-xs">
         <div>
           <p className="text-[var(--text-secondary)]">Invested</p>
@@ -77,7 +66,6 @@ export function MobileHoldingCard({ holding, idx }: MobileHoldingCardProps) {
         </div>
       </div>
 
-      {/* Row 3 — P&L progress bar */}
       <div className="mt-2 flex items-center justify-between gap-2">
         <div className="flex-1">
           <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
@@ -86,7 +74,7 @@ export function MobileHoldingCard({ holding, idx }: MobileHoldingCardProps) {
                 'h-full rounded-full',
                 isPos ? 'bg-[var(--accent-green)]' : 'bg-[var(--accent-red)]'
               )}
-              style={{ width: `${Math.min(Math.abs(holding.portfolioPct), 100)}%` }}
+              style={{ width: `${Math.min(Math.abs(holding.gainLossPct ?? 0), 100)}%` }}
             />
           </div>
         </div>
