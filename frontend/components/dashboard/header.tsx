@@ -1,6 +1,7 @@
 'use client';
 
-import { useLiveClock } from '@/hooks/use-live-clock';
+import { memo } from 'react';
+import { useLiveClock } from './hooks/use-live-clock';
 import { RefreshCw } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
@@ -11,7 +12,11 @@ interface HeaderProps {
   onRefresh: () => void;
 }
 
-export function DashboardHeader({ isRefreshing, lastUpdated, onRefresh }: HeaderProps) {
+export const DashboardHeader = memo(function DashboardHeader({
+  isRefreshing,
+  lastUpdated,
+  onRefresh,
+}: HeaderProps) {
   const now = useLiveClock();
 
   return (
@@ -25,7 +30,6 @@ export function DashboardHeader({ isRefreshing, lastUpdated, onRefresh }: Header
         </p>
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
-        {/* Live clock */}
         <div className="text-right">
           <p className="font-mono text-xs text-[var(--text-primary)] sm:text-sm">
             {now.toLocaleTimeString('en-IN', {
@@ -46,7 +50,6 @@ export function DashboardHeader({ isRefreshing, lastUpdated, onRefresh }: Header
           )}
         </div>
 
-        {/* Live indicator dot */}
         <div className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1.5 sm:px-3">
           <span
             className={cn(
@@ -59,7 +62,6 @@ export function DashboardHeader({ isRefreshing, lastUpdated, onRefresh }: Header
           </span>
         </div>
 
-        {/* Manual refresh button */}
         <button
           onClick={onRefresh}
           disabled={isRefreshing}
@@ -71,4 +73,4 @@ export function DashboardHeader({ isRefreshing, lastUpdated, onRefresh }: Header
       </div>
     </header>
   );
-}
+});

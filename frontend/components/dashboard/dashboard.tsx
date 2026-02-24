@@ -1,28 +1,31 @@
 'use client';
 
-import { usePortfolio } from '@/hooks/use-portfolio';
+import { usePortfolioContext } from '@/context/portfolio-context';
 import { DashboardHeader } from './header';
 import { StatsBar } from './stats-bar';
 import { SectorGroups } from '@/components/portfolio/sector-groups';
 import { ExitedPositions } from '@/components/portfolio/exited-positions';
 import { ErrorBanner } from '@/components/ui/error-banner';
-import { Spinner } from '@/components/ui/spinner';
-import { PortfolioBreakdown } from '@/components/charts/portfolio-breakdown';
-import { GainLossBar } from '@/components/charts/gainloss-bar';
+import { DashboardSkeleton } from './dashboard-skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Info } from 'lucide-react';
+import dynamic from 'next/dynamic';
+
+const PortfolioBreakdown = dynamic(
+  () => import('@/components/charts/portfolio-breakdown').then((m) => m.PortfolioBreakdown),
+  { loading: () => <Skeleton className="h-[310px] w-full rounded-xl" />, ssr: false }
+);
+
+const GainLossBar = dynamic(
+  () => import('@/components/charts/gainloss-bar').then((m) => m.GainLossBar),
+  { loading: () => <Skeleton className="h-[310px] w-full rounded-xl" />, ssr: false }
+);
 
 export function Dashboard() {
-  const { data, isLoading, isRefreshing, error, lastUpdated, refresh } = usePortfolio();
+  const { data, isLoading, isRefreshing, error, lastUpdated, refresh } = usePortfolioContext();
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Spinner className="h-8 w-8" />
-          <p className="text-sm text-[var(--text-secondary)]">Loading portfolio data...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -55,7 +58,6 @@ export function Dashboard() {
                 <SectorGroups sectors={data.sectors} />
               </div>
 
-              {/* Exited positions — only render if we have sold holdings */}
               {data.soldHoldings?.length > 0 && (
                 <div>
                   <h2 className="mb-3 text-sm font-medium uppercase tracking-wider text-[var(--text-secondary)]">
@@ -65,7 +67,6 @@ export function Dashboard() {
                 </div>
               )}
 
-              {/* Assignment requirement: disclaimer for unofficial APIs */}
               <div className="flex items-start gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-elevated)] px-4 py-3">
                 <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--accent-amber)]" />
                 <p className="text-xs text-[var(--text-secondary)]">{data.dataDisclaimer}</p>

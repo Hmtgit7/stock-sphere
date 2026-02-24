@@ -1,16 +1,16 @@
+import { memo } from 'react';
 import { TrendingUp, TrendingDown, Wallet, BarChart3, History } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
 import { formatCurrency } from '@/lib/utils';
 import type { PortfolioResponse } from '@/types/portfolio';
 
-export function StatsBar({ data }: { data: PortfolioResponse }) {
+export const StatsBar = memo(function StatsBar({ data }: { data: PortfolioResponse }) {
   const { totalInvestment, totalPresentValue, totalGainLoss, totalGainLossPct, totalRealizedPnL } =
     data;
   const isPositive = totalGainLoss >= 0;
   const isRealizedPositive = totalRealizedPnL >= 0;
 
   return (
-    // 2 cols mobile → 3 cols md → 5 cols xl
     <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
       <StatCard
         label="Total Invested"
@@ -48,4 +48,4 @@ export function StatsBar({ data }: { data: PortfolioResponse }) {
       />
     </div>
   );
-}
+});
