@@ -1,0 +1,55 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# CD – Deploy to Development
+#
+# Triggers on every push to the `develop` branch (i.e. after a feature/*
+# PR is merged).  Runs full CI for all packages, then deploys both services
+# to the development environment in parallel.
+#
+# GitHub Environment: development
+#   • No required reviewers
+#   • Store development-tier secrets here
+# ─────────────────────────────────────────────────────────────────────────────
+name: CD – Deploy to Development
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - '.github/workflows/deploy-dev.yml'
+      - '.github/workflows/_reusable-ci.yml'
+
+# Queue; never cancel an in-flight dev deployment
+concurrency:
+  group: deploy-development
+  cancel-in-progress: false
+
+jobs:
+  # ── Gate: full CI must pass before anything is deployed ──────────────────
+  ci:
+    name: CI Gate
+    uses: ./.github/workflows/_reusable-ci.yml
+    with:
+      node-version: '20'
+      run-all: true # Deploy context – always validate every package
+
+  # ── Deploy frontend to Vercel (preview deployment) ───────────────────────
+  deploy-frontend:
+    name: Deploy Frontend → development
+    needs: ci
+    uses: ./.github/workflows/deploy-frontend.yml
+    with:
+      environment: development
+      production-deploy: false # Preview URL, not production slot
+    secrets: inherit
+
+  # ── Deploy backend to AWS ECS (dev cluster) ───────────────────────────────
+  deploy-backend:
+    name: Deploy Backend → development
+    needs: ci
+    uses: ./.github/workflows/deploy-backend.yml
+    with:
+      environment: development
+    secrets: inherit
