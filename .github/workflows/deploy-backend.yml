@@ -1,47 +1,116 @@
-name: Deploy Backend (Railway)
+# ─────────────────────────────────────────────────────────────────────────────
+# Reusable AWS ECS deployment workflow
+# Called by:  deploy-dev.yml | deploy-staging.yml | deploy-production.yml
+#
+# Flow
+#   1. Authenticate to AWS via OIDC (no long-lived keys)
+#   2. Build & push Docker image to Amazon ECR
+#   3. Render a new ECS task-definition revision with the new image
+#   4. Deploy to ECS and wait for service stability
+#
+# Inputs
+#   environment   – GitHub environment name (development | staging | production)
+#   image-tag     – Optional explicit tag; defaults to short git SHA
+# Secrets (inherited from caller via secrets: inherit)
+#   AWS_ROLE_ARN          – IAM role with OIDC trust (per environment)
+#   AWS_REGION            – e.g. us-east-1
+#   ECR_REGISTRY          – e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com
+#   ECR_REPOSITORY        – ECR repository name
+#   ECS_CLUSTER           – ECS cluster name
+#   ECS_SERVICE           – ECS service name
+#   ECS_TASK_DEFINITION   – Task definition family name
+#   CONTAINER_NAME        – Container name inside the task definition
+# ─────────────────────────────────────────────────────────────────────────────
+name: ♻️ Reusable – Deploy Backend (AWS ECS)
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'backend/**'
-      - '.github/workflows/deploy-backend.yml'
+  workflow_call:
+    inputs:
+      environment:
+        description: "GitHub environment to target"
+        required: true
+        type: string
+      image-tag:
+        description: "Docker image tag (defaults to short SHA)"
+        type: string
+        default: ""
 
 jobs:
-  test-and-deploy-backend:
-    name: Test & Deploy NestJS to Railway
+  deploy-backend:
+    name: 🚀 Deploy Backend → ${{ inputs.environment }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
+    environment: ${{ inputs.environment }}
+
+    # Queue deploys – never cancel an in-flight deployment
+    concurrency:
+      group: deploy-backend-${{ inputs.environment }}
+      cancel-in-progress: false
+
+    permissions:
+      id-token: write  # Required for OIDC authentication to AWS
+      contents: read
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      # ── AWS Authentication (OIDC – no long-lived credentials) ──────────────
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          version: 10.29.3
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      # ── Resolve image tag ──────────────────────────────────────────────────
+      - name: Resolve image tag
+        id: tag
+        shell: bash
+        run: |
+          TAG="${{ inputs.image-tag }}"
+          if [ -z "$TAG" ]; then
+            TAG="${GITHUB_SHA::7}"
+          fi
+          echo "value=$TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Run tests
-        run: pnpm test
-
-      - name: Build
-        run: pnpm build
-
-      - name: Deploy to Railway
-        run: npx --yes @railway/cli@latest up --service backend --detach
+      # ── Build & push Docker image ──────────────────────────────────────────
+      - name: Build, tag, and push image to ECR
+        id: build-image
+        shell: bash
         env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ steps.tag.outputs.value }}
+        run: |
+          IMAGE_URI="$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker build -t "$IMAGE_URI" ./backend
+          docker push "$IMAGE_URI"
+          echo "image=$IMAGE_URI" >> "$GITHUB_OUTPUT"
+
+      # ── Update ECS task definition ─────────────────────────────────────────
+      - name: Download current ECS task definition
+        shell: bash
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition "${{ secrets.ECS_TASK_DEFINITION }}" \
+            --query taskDefinition > task-definition.json
+
+      - name: Render updated ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ secrets.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      # ── Deploy ─────────────────────────────────────────────────────────────
+      - name: Deploy to Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ secrets.ECS_SERVICE }}
+          cluster: ${{ secrets.ECS_CLUSTER }}
+          wait-for-service-stability: true

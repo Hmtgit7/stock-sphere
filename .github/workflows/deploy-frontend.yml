@@ -1,17 +1,43 @@
-name: Deploy Frontend (Vercel)
+# ─────────────────────────────────────────────────────────────────────────────
+# Reusable Vercel deployment workflow
+# Called by:  deploy-dev.yml | deploy-staging.yml | deploy-production.yml
+#
+# Inputs
+#   environment          – GitHub environment name (development | staging | production)
+#   production-deploy    – Whether to deploy as Vercel production build
+# Secrets (passed via secrets: inherit from caller)
+#   VERCEL_TOKEN         – Vercel API token
+#   VERCEL_ORG_ID        – Vercel organisation ID
+#   VERCEL_PROJECT_ID    – Vercel project ID (environment-level secret)
+# ─────────────────────────────────────────────────────────────────────────────
+name: ♻️ Reusable – Deploy Frontend (Vercel)
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'frontend/**'
-      - '.github/workflows/deploy-frontend.yml'
+  workflow_call:
+    inputs:
+      environment:
+        description: "GitHub environment to target"
+        required: true
+        type: string
+      production-deploy:
+        description: "Deploy as Vercel production (--prod flag)"
+        type: boolean
+        default: false
 
 jobs:
   deploy-frontend:
-    name: Deploy Next.js to Vercel
+    name: 🚀 Deploy Frontend → ${{ inputs.environment }}
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    # Queue deploys – never cancel an in-flight deployment
+    concurrency:
+      group: deploy-frontend-${{ inputs.environment }}
+      cancel-in-progress: false
+
+    defaults:
+      run:
+        working-directory: frontend
 
     steps:
       - name: Checkout
@@ -25,7 +51,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "20"
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
@@ -35,20 +61,41 @@ jobs:
       - name: Install Vercel CLI
         run: pnpm add -g vercel@latest
 
-      - name: Pull Vercel environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Pull Vercel environment information
+        shell: bash
+        run: |
+          VERCEL_ENV="preview"
+          if [ "${{ inputs.production-deploy }}" == "true" ]; then
+            VERCEL_ENV="production"
+          fi
+          vercel pull --yes --environment="$VERCEL_ENV" --token="$VERCEL_TOKEN"
         env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build project artifacts
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        shell: bash
+        run: |
+          if [ "${{ inputs.production-deploy }}" == "true" ]; then
+            vercel build --prod --token="$VERCEL_TOKEN"
+          else
+            vercel build --token="$VERCEL_TOKEN"
+          fi
         env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Deploy to Vercel
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        shell: bash
+        run: |
+          if [ "${{ inputs.production-deploy }}" == "true" ]; then
+            vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+          else
+            vercel deploy --prebuilt --token="$VERCEL_TOKEN"
+          fi
         env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
